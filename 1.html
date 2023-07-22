@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>
+      1: C#, hiding a helper class except from the class it is helping
+    </title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>1: C#, hiding a helper class except from the class it is helping</h1>
+    <p>
+      There have been a few occasions where I have come up been writing a class
+      and thought that another class would provide a useful abstraction. But
+      when you've written this helper class you realise that it has no use
+      outside of the original class, or the concept could be confusing in a
+      different context
+    </p>
+    <p>
+      Limiting the visiblity of the helper class can avoid these problems. The
+      main class could have access to the abstraction with no risk of it being
+      mistakenly used elsewhere later
+    </p>
+    <p>A very simple way of doing this is to nest the classes</p>
+    <pre>
+      <code>
+        public class MainClass
+        {
+          public static bool MainMethod()
+          {
+            var x = new HelperClass();
+            return false;
+          } 
+          
+          private class HelperClass
+          {
+
+          }
+        }
+      </code>
+    </pre>
+    <p>
+      In my experience a lot of developers instinctively dislike having multiple
+      classes in a single file like this. Personally I don't mind it in this
+      case but I'm all for keeping my code files short and hiding the details of
+      abstractions until I want to know what they are. What I want is the helper
+      to be in a different file
+    </p>
+    <p>
+      For a long time I couldn't think of a way of doing this. Recently I
+      realised it could use a C# feature I hadn't thought about in years,
+      partial classes
+    </p>
+    <pre>
+      <code>
+        public partial class MainClass 
+        {
+          public static bool MainMethod() 
+          {
+            var x = new HelperClass();
+            return false;
+          }
+        }
+      </code>
+    </pre>
+    <br />
+    <pre>
+      <code>
+        public partial class MainClass 
+        { 
+          private class HelperClass 
+          {
+          } 
+        }
+      </code>
+    </pre>
+    <p>
+      I haven't used this in the wild yet (I'm currently working on a Python
+      project), but it seems like this would give me the visibility restriction
+      without bloating the files
+    </p>
+  </body>
+</html>
