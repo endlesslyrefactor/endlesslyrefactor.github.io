@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Using patch</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Using patch</h1>
+    <p>2023-07-17</p>
+    <p>[Python]</p>
+    <p>
+      The unit test library <code>unittest</code> has a method called
+      <code>patch()</code> which can be used to mock an object which is will be
+      imported by the code under test
+    </p>
+    <p>There are three ways of using it:</p>
+    <h2>Context manager</h2>
+    <p>
+      You can use <code>patch</code> in a <code>with</code> statement inside
+      your test. The object after the <code>as</code> is the mock which will
+      replace the imported object. It can be set up like a normal mock object
+    </p>
+    <pre>
+      <code>
+        class ExampleTestClass(unittest.TestCase):
+            def example_test(self):
+                with patch('datetime.datetime') as mock_datetime:
+                    mock_datetime.now.return_value = datetime(2020, 1, 14)
+                    # Add rest of the test
+      </code>
+    </pre>
+    <h2>Decorator</h2>
+    <p>
+      You can also use <code>patch</code> as a decorator. In this case the test
+      will have an extra parameter which will be the mock object
+    </p>
+    <pre>
+      <code>
+        class ExampleTestClass(unittest.TestCase)
+            @patch('datetime.datetime')
+            def example_test(self, mock_datetime):
+                mock_datetime.now.return_value = datetime(2020, 1, 14)
+                # Add rest of the test
+
+      </code>
+    </pre>
+    <h2>Manually</h2>
+    <p>
+      It is also possible to call patch manually. In this case calling
+      <code>patch()</code> returns a patcher object. On the patcher you need to
+      call <code>start()</code> before you want to patching to take effect, and
+      <code>stop()</code> afterwards
+    </p>
+    <pre>
+      <code>
+        class ExampleTestClass(unitttest.TestCase)
+            def example_test(self):
+                patcher = patch('datetime.datetime')
+                mock_datetime = patcher.start()
+                mock_datetime.now.return_value = datetime(2020, 1, 14)
+
+                # Add main part of test
+
+                patcher.stop()
+      </code>
+    </pre>
+  </body>
+</html>
