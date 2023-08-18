@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #1</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #1</h1>
+    <p>2023-08-14</p>
+    <p>[JavaScipt]</p>
+    <p>I have finally got annoyed enough with the todo app on my phone that I have decided to do something about it. And as I have some time off I thought it would be nice to turn it into a little JavaScript PWA project</p>
+    <p>I'll be writing articles as I write the code like Ron Jeffries has been doing with his asteroids project. There's no promises this will be completed in anyway</p>
+    <p>First things first, I best create a repo and a <code>packages.json</code> file</p>
+    <pre>
+      <code>
+        mkdir todo-app
+        cd .\todo-app\
+        git init
+        "{}" > packages.json
+      </code>
+    </pre>
+    <p>Given I want to write this with TDD (one of the issues with the current app I use is how flakey it gets) I should add a test framework. It's been ages since I've done much JavaScript but I remember liking Jest so I'll use that</p>
+    <pre>
+      <code>
+        npm install --save-dev jest
+      </code>
+    </pre>
+    <p>I also want to use TypeScript for this project. I haven't been getting on with untyped Python on my work project and I like to learn something new whenever I work on something in my own time</p>
+    <pre>
+      <code>
+        npm install -g typescript
+      </code>
+    </pre>
+    <p>Now, where should I start? I was tempted to just dive in with specifying a <code>todo</code> class. But if I start at the bottom (well, near the bottom) I'm worried it will take a long time before I can actually <i>see</i> anything. And I think it will be easier to work out how to show validation errors if I approach this is a top down fashion</p>
+    <p>So, I'll start by creating <code>index.html</code>. I can never remember the things that should be in <code>&lthead&gt</code> so I'll steal one from the internet</p>
+    <pre>
+      <code>
+        &lt!doctype html&gt
+        &lthtml lang="en"&gt
+        &lthead&gt
+          &ltmeta charset="utf-8"&gt
+          &lttitle&gttodo app&lt/title&gt
+          &ltmeta name="viewport" content="width=device-width, initial-scale=1"&gt
+        &lt/head&gt
+        &ltbody&gt
+            &lth1&gttodo app&lt/h1&gt
+        &lt/body&gt
+        &lt/html&gt
+      </code>
+    </pre>
+    <p>And I guess the next thing would be to add a form so I can add some state. As it's currently plain html I'm not going to test this but I'm going to have to work out how to test it when the form actually does something</p>
+    <pre>
+      <code>
+        &lth2>Add todo&lt/h2&gt
+        &ltform  id="add-form"&gt
+            &ltinput type="text" id="add-name" name="name"/&gt
+            &ltinput type="submit" value="add"/&gt
+        &lt/form&gt
+      </code>
+    </pre>
+  </body>
+  <p>I'll add a TypeScript file with an event handler to wire up the form's submit. This will be the entry point to the business logic later. I added <code>e.preventDefault()</code> as the default form submit behaviour is to make a HTTP request</code></p>
+  <pre>
+    <code>
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('add-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('hello world');
+        })
+    })
+    </code>
+  </pre>
+  <p>Now I have a form on a page which show a hello world alert if I press enter in the form or click the add button</p>
+  <p>It's not much progress but I'm going to leave it there for today. At least everything seems to be setup now</p>
+</html>

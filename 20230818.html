@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #2</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #2</h1>
+    <p>2023-08-18</p>
+    <p>[JavaScript]</p>
+    <p>I didn't intend to leave this 4 days but I'm ready to pick it up again</p>
+    <p>Firstly I think I should pass the name from the form into some validation code. I know I can get the form to valdiate too, I'll add that in once I'm happy things are hooked up right</p>
+    <pre>
+      <code>
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('add-form')?.addEventListener('submit', (e) => {
+              e.preventDefault();
+      
+              let formInput = GetAddFormInput();
+              alert(formInput.name);
+          })
+        })
+        
+        function GetAddFormInput() : AddFormInput {
+            return new AddFormInput(
+                (document.getElementById('add-name') as HTMLInputElement)?.value ?? ''
+            );
+        }
+        
+        class AddFormInput {
+            #name = '';
+        
+            constructor (name: string) {
+                this.#name = name;
+            }
+        
+            get name() {
+                return this.#name;
+            }
+        }
+      </code>
+    </pre>
+    <p>I had to fight a bit with the TypeScript compiler to get the private property to work in the <code>AddFormInput</code> class. I needed a <code>tsconfig.js</code> file which sets the <code>target</code> to be one which supports the syntax. I also had to set the <code>moduleResolution</code> property otherwise I got babel errors</p>
+    <pre>
+      <code>
+        {
+          "compilerOptions": {
+              "moduleResolution": "Bundler",
+              "target": "es2022",
+          }
+        }
+      </code>
+    </pre>
+    <p>Now I have a DTO to contain the form values I will create a business object to contain a todo</p>
+    <pre>
+      <code>
+        import AddFormInput from "./add-form-input";
+
+        class Todo {
+            #name = '';
+
+            constructor (input: AddFormInput) {
+                this.#name = input.name;
+            }
+
+            get name() {
+                return this.#name;
+            }
+        }
+
+        export default Todo;        
+      </code>
+    </pre>
+    <p>And I also moved <code>AddFormInput</code> into it's own module</p>
+    <pre>
+      <code>
+        class AddFormInput {
+          #name = '';
+      
+          constructor (name: string) {
+              this.#name = name;
+          }
+      
+          get name() {
+              return this.#name;
+          }
+        }
+        
+        export default AddFormInput;
+      </code>
+    </pre>
+    <p>And my first unit test for this project</p>
+    <pre>
+      <code>
+        import AddFormInput from './add-form-input';
+
+        import Todo from  './todo';
+
+        test('test name is set', () => {
+            const testName = 'test name';
+            const input = new AddFormInput(testName);
+            const sut = new Todo(input);
+
+            expect(sut.name).toBe(testName);
+        })
+      </code>
+    </pre>
+    <p>Which doesn't want to run. After over an hour of trying to work things out I find out that Jest doesn't support ESModules very well and I need to change a bunch of config to get it to work</p>
+    <p>In <code>package.json</code> I needed to set <code>"type": "module"</code> and change how Jest is called so a flag is turned on</p>
+    <pre>
+      <code>
+        {
+          "type": "module",
+          "devDependencies": {
+            "@types/jest": "^29.5.3",
+            "jest": "^29.6.2",
+            "ts-jest": "^29.1.1"
+          },
+          "scripts": {
+            "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
+          }
+        }        
+      </code>
+    </pre>
+    <p>I needed to change <code>jest.config.js</code> into <code>jest.config.json</code> and tell both Jest and ts-jest to tread TypeScript files as ESModules</p>
+    <pre>
+      <code>
+        {
+          "preset": "ts-jest",
+          "testEnvironment": "node",
+          "extensionsToTreatAsEsm": [".ts"],
+          "transform": {
+              "^.+\\.tsx?$": [
+                  "ts-jest",
+                  {
+                    "useESM": true
+                  }
+              ]
+          }
+        }
+      </code>
+    </pre>
+    <p>Finally I needed to change <code>tsconfig.json</code> to use <code>node</code> module resolution, enable ESModules, and exclude my test files from the build</p>
+    <pre>
+      <code>
+        {
+          "compilerOptions": {
+              "moduleResolution": "node",
+              "target": "es2022",
+              "esModuleInterop": true
+          },
+          "exclude": [
+              "**/*.test.ts"
+          ]
+        }
+      </code>
+    </pre>
+    <p>In doing all this I've actually broken the website. It turns out that loading modules in the browser causes CORS failures. But I've realised I haven't been committing this code and really think I should before going any further</p>
+    <p>Commit done. I changed by <code>tsconfig.json</code> (again) to put all the built JavaScript files into a <code>/js</code> folder</p>
+    <pre>
+      <code>
+        {
+          "compilerOptions": {
+              "moduleResolution": "node",
+              "target": "es2022",
+              "esModuleInterop": true,
+              "outDir": "js"
+          },
+          ...
+        }
+      </code>
+    </pre>
+    <p>I then made a small NodeJS program to return <code>index.html</code> and all the JavaScript files</p>
+    <pre>
+      <code>
+        import express from "express";
+
+        import path from 'path';
+        import { fileURLToPath } from 'url';
+        
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        
+        console.log(path.join(__dirname, 'index.html'));
+        
+        const app = express();
+        
+        app.use( '/js', express.static(__dirname + '/js' ));
+        
+        app.get('/', (req, res) => {
+            res.sendFile(path.join(__dirname, 'index.html'))
+        } )
+        
+        app.listen(3000, () => console.log('Listening on port 3000!'));
+      </code>
+    </pre>
+    <p>I found a <a href="https://howtojs.io/how-to-work-with-es6-modules-in-the-browser/">guide</a> on how to do this  but unfortunately it looks like using express with ESModules removed the <code>__dirname</code> helper. I found a solution to this on <a href="https://stackoverflow.com/a/69242626">Stack Overflow</a>. As this is just to run things locally I didn't spend much time in finding a good solution</p>
+    <p>After that the website was working but I was getting 404 errors about <code>http://localhost:3000/js/add-form-input</code>. It turns out that TypeScript does not rewrite import paths when it builds the JavaScript which means the express server is trying to find the file without the extension (presumably TypseScript knows what file extensions to look for). The fix for this was simple but weird. If you give your imports a <code>.js</code> extension TypeScript will still find them if they actually have a <code>.ts</code> extension and as the path won't be changed the server will now also be able to find them</p>
+    <p>I think this is a good point to take a break</p>
+  </body>
+</html>
