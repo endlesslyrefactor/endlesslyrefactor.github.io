@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #3</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #3</h1>
+    <p>2023-08-19</p>
+    <p>[JavaScript]</p>
+    <p>Only a day since I last visited this so hopefully everything is still fresh (and I now have everything configured)</p>
+    <p>I'm going to start with some TDD. I've found my personal projects have been much tidier when I "shift left" validation by having the domain logic as low in the domain object stack as possible. So I'm going to start with a <code>TodoName</code> value type instead of having name logic in the <code>Todo</code> class</p>
+    <p>I don't want to spend a bunch of time in the weeds of TypeScript for this (I have enough to learn as it is), so I found a <a href="https://khalilstemmler.com/articles/typescript-value-object/">guide</a> which looks pretty good and I'm going to copy the generic value object from there. I have some misgivings about the structural equality of that implementation (a <code>TodoName</code> shouldn't be comparable to a <code>PersonName</code> etc) but I'll ignore this for now</p>
+    <p>And I hit more reference errors!</p>
+    <p>I was getting errors about an ambigous reference to <code>shallow-equal-object</code> when I tried to load the <code>ValueObject</code> in the browser. I think this was to do with it being the wrong type of module and I couldn't work round this. So I copied the code from the module and added it to the <code>ValueObject</code></p>
+    <p>I also hit errors again when trying to use the new code in Jest and in the browser. I came accross the concept of <a href="https://blog.logrocket.com/es-modules-in-browsers-with-import-maps/">import maps</a>. After a bit of fiddling I found out if I put <code>/js/module</code> mappings to the head of the webpage then I can work around TypeScript not rewriting references without having to use Webpack or some other build</p>
+    <p>After all that this is the <code>ValueObject</code> class:</p>
+    <pre>
+      <code>
+        interface ValueObjectProps {
+          [index: string]: any;
+        }
+        
+        /**
+         * @desc ValueObjects are objects that we determine their
+         * equality through their structrual property.
+         */
+        
+        export abstract class ValueObject<T extends ValueObjectProps> {
+          public readonly props: T;
+        
+          constructor (props: T) {
+            this.props = Object.freeze(props);
+          }
+        
+          public equals (vo?: ValueObject<T>) : boolean {
+            if (vo === null || vo === undefined) {
+              return false;
+            }
+            if (vo.props === undefined) {
+              return false;
+            }
+            return shallowEqual(this.props, vo.props, null)
+          }
+        }
+        
+        function shallowEqual (objectA, objectB, options) {
+            if (objectA === objectB) {
+                return true;
+            }
+            if (typeof objectA !== "object" || objectA === null) {
+                if (process.env.NODE_ENV !== "production" && options && options.debug) {
+                    var out = options.console || console;
+                    out.group("shallow-equal-object");
+                    out.log("objectA is not object.");
+                    out.log("objectA", objectA);
+                    out.log("objectB", objectB);
+                    out.groupEnd();
+                }
+                return false;
+            }
+            if (typeof objectB !== "object" || objectB === null) {
+                if (process.env.NODE_ENV !== "production" && options && options.debug) {
+                    var out = options.console || console;
+                    out.group("shallow-equal-object");
+                    out.log("objectB is not object.");
+                    out.log("objectA", objectA);
+                    out.log("objectB", objectB);
+                    out.groupEnd();
+                }
+                return false;
+            }
+            var keysA = Object.keys(objectA);
+            var keysB = Object.keys(objectB);
+            if (keysA.length !== keysB.length) {
+                if (process.env.NODE_ENV !== "production" && options && options.debug) {
+                    var out = options.console || console;
+                    out.group("shallow-equal-object");
+                    out.log("object key length is not same");
+                    out.log("objectA", objectA);
+                    out.log("objectB", objectB);
+                    out.groupEnd();
+                }
+                return false;
+            }
+            var isEqual = options && typeof options.customEqual === "function" ? options.customEqual : exports.is;
+            for (var i = 0; i < keysA.length; i++) {
+                var key = keysA[i];
+                if (!Object.prototype.hasOwnProperty.call(objectB, key) || !isEqual(objectA[key], objectB[key])) {
+                    if (process.env.NODE_ENV !== "production" && options && options.debug) {
+                        var out = options.console || console;
+                        out.group("shallow-equal-object");
+                        out.log("key:" + key + " is not equals between A and B.");
+                        out.log("objectA[" + key + "]:", objectA[key]);
+                        out.log("objectB[" + key + "]:", objectB[key]);
+                        out.log("objectA", objectA);
+                        out.log("objectB", objectB);
+                        out.groupEnd();
+                    }
+                    return false;
+                }
+            }
+            return true;
+          };
+      </code>
+    </pre>
+    <p>This is the <code>TodoName</code> class:</p>
+    <pre>
+      <code>
+        import { ValueObject } from "./value-object";
+
+        interface NameProps {
+            value: string
+        }
+          
+        class TodoName extends ValueObject<NameProps> {  
+            get value (): string {
+              return this.props.value;
+            }
+            
+            private constructor (props: NameProps) {
+              super(props);
+            }
+          
+            public static create (name: string) : TodoName {
+              if (name === undefined || name === null || name.length <= 2 || name.length > 100) {
+                throw new Error('User must be greater than 2 chars and less than 100.');
+              } else {
+                return new TodoName({ value: name });
+              }
+            }
+        }
+
+        export default TodoName;
+      </code>
+    </pre>
+    <p>And these are the mappings I've had to add to the webpage:</p>
+    <pre>
+      <code>
+        &ltscript type="importmap"&gt
+          {
+            "imports": {
+              "/js/add-form-input": "/js/add-form-input.js",
+              "/js/todo-name": "/js/todo-name.js",
+              "/js/value-object": "/js/value-object.js"
+            }
+          }
+        &lt/script&gt
+      </code>
+    </pre>
+    <p>Now, on to the unit tests. There is currently some behaviour in <code>TodoName</code> as I took the code from the guide but I'm going to ignore that for now, write the tests I want and change the code accordingly</p>
+    <p>These are the tests I came up with as a first pass. I often find it easier to write all the tests for a topic in one go instead of doing it one at a time like how TDD is often defined</p>
+    <p>Strings not accepting <code>null</code> or <code>undefined</code> is nice. I'm not sure how much I would trust that in production client side code but I'll put faith in it for this</p>
+    <pre>
+      <code>
+        import TodoName from './todo-name'
+
+        describe('create', () => {
+            it.each([5, 50])('sets name if it is between 5 and 50 characters', (numberOfCharacters) => {
+                const testName = 's'.repeat(numberOfCharacters);
+                const sut = TodoName.create(testName);
+            
+                expect(sut.value).toBe(testName);
+            })
+            
+            it('throws error if name is all whitespace', (testName) => {
+                const action = () => {
+                    TodoName.create("      ");
+                }
+
+                expect(action).toThrowError(Error);
+            })
+            
+            it('throws an error if name is less than 5 characters long', () => {
+                const action = () => {
+                    TodoName.create("s");
+                }
+
+                expect(action).toThrowError(Error);
+            })
+            
+            it('throws an error if name is greater than 50 characters long', () => {
+                const action = () => {
+                    TodoName.create("s".repeat(51));
+                }
+
+                expect(action).toThrowError(Error);
+            })
+        })
+      </code>
+    </pre>
+    <p>As expected I get test failures</p>
+    <pre>
+      <code>
+        FAIL  ./todo-name.test.ts
+        ● create › throws error if name is all whitespace
+      
+          expect(received).toThrowError(expected)
+      
+          Expected constructor: Error
+      
+          Received function did not throw
+      
+            14 |         }
+            15 |
+          > 16 |         expect(action).toThrowError(Error);
+               |                        ^
+            17 |     })
+            18 |
+            19 |     it('throws an error if name is less than 5 characters long', () => {
+      
+            at Object.<anonymous> (todo-name.test.ts:16:24)
+      
+        ● create › throws an error if name is greater than 50 characters long
+      
+          expect(received).toThrowError(expected)
+      
+          Expected constructor: Error
+      
+          Received function did not throw
+      
+            30 |         }
+            31 |
+          > 32 |         expect(action).toThrowError(Error);
+               |                        ^
+            33 |     })
+            34 | })
+      
+            at Object.<anonymous> (todo-name.test.ts:32:24)
+        
+        Test Suites: 1 failed, 1 passed, 2 total
+        Tests:       2 failed, 4 passed, 6 total
+        Snapshots:   0 total
+        Time:        2.954 s
+        Ran all test suites.
+      </code>
+    </pre>
+    <p>I think I'll see if there are any better errors I could throw before I start implementing</p>
+    <p>It looks like there isn't so I'll define a custom error instead</p>
+    <pre>
+      <code>
+        class ArgumentError extends Error {
+          constructor(message: string) {
+              super(message);
+              this.name = "ArgumentError";
+          }
+        }
+        
+        export default ArgumentError;
+      </code>
+    </pre>
+    <p>Now I'll update <code>TodoName</code> so the tests pass</p>
+    <pre>
+      <code>
+        import ArgumentError from "./argument-error";
+        import { ValueObject } from "./value-object";
+
+        interface NameProps {
+            value: string
+        }
+          
+        class TodoName extends ValueObject<NameProps> {
+            static get #minLength (): number {
+              return 5;
+            }
+            
+            static get #maxLength (): number {
+              return 50;
+            }
+
+            get value (): string {
+              return this.props.value;
+            }
+            
+            private constructor (props: NameProps) {
+              super(props);
+            }
+          
+            public static create (name: string) : TodoName {
+              const trimmedName = name.trim();
+
+              if (trimmedName.length < this.#minLength  || trimmedName.length > this.#maxLength) {
+                throw new ArgumentError(`Name (${trimmedName}) must be between ${this.#minLength} and ${this.#maxLength} characters`);
+              } else {
+                return new TodoName({ value: trimmedName });
+              }
+            }
+        }
+
+        export default TodoName;
+      </code>
+    </pre>
+    <p>Using a private static property to store the minimum and maximum lengths feels a bit of a long way round. But it didn't seem like I can add a <code>const</code> at the class level</p>
+    <p>Once again I haven't got as far as I'd like but I'm going to call it a day. Hopefully I have <i>now</i> come to the end of these reference issues 🤞</p>
+  </body>
+</html>
