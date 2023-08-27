@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #4</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #4</h1>
+    <p>2023-08-27</p>
+    <p>[JavaScript]</p>
+    <p>Once again I've left it too long before picking this up again. In my defence I started a <i>very</i> good videogame. Let's see how much I remember today</p>
+    <p>After refreshing myself with the code it seems like the first thing I should do is actually use <code>TodoName</code> in <code>Todo</code></p>
+    <p>The core changes were to change the <code>Todo</code> constructor:</p>
+    <pre>
+      <code>
+        constructor (input: AddFormInput) {
+          this.#name = TodoName.create(input.name);
+        }
+      </code>
+    </pre>
+    <p>And to alter <code>main.ts</code> to create a <code>Todo</code>:</p>
+    <pre>
+      <code>
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('add-form')?.addEventListener('submit', (e) => {
+              e.preventDefault();
+      
+              let formInput = GetAddFormInput();
+              let todo = new Todo(formInput);
+      
+              alert(todo.name.value);
+          })
+        })
+      </code>
+    </pre>
+    <p>I also had to add the module to the import map but I think I'm only going to log core changes in these posts</p>
+    <p>I think that next I should try and show the validation error in the form. It does feel a bit like I'm getting ahead of myself but it will let me work out how I render dynamic HTML in the page. I really don't want to introduce a framework for this. But I do want to have some kind of fire and forget thing like you get with React components instead of the old school jQuery method of constantly trying to work out how to get from the current HTML to the new. I seem to remember there are some <href a="https://viperhtml.js.org/hyperhtml/documentation/">super lightweight libraries</href> for generating HTML from template literals. I might decide to use one of those or I might just roll my own thing</p>
+    <p>After reading the docs I <i>think</i> I'm going to give hyperHTML a go</p>
+    <p>First I need to install it:</p>
+    <pre>
+      <code>
+        npm i --save hyperhtml
+      </code>
+    </pre>
+    <p>I then just needed to remove the form from <code>index.html</code> and make a helper method in <code>main.ts</code> which uses hyperHTML:</p>
+    <pre>
+      <code>
+        function RenderForm() : void {
+          hyper.bind(document.body)`
+              &lth1&gttodo app&lt/h1&gt
+              &lth2&gtAdd todo&lt/h2&gt
+              &ltform id="add-form"&gt
+                  &ltinput type="text" id="add-name" name="name"/&gt
+                  &ltinput type="submit" value="add"/&gt
+              &lt/form&gt
+          `
+        }
+      </code>
+    </pre>
+    <p>I did also have to faff a bit with the import map for hyperHTML. The important piece was to import the <code>esm.js</code> file instead of <code>index.js</code>:</p>
+    <pre>
+      <code>
+        "hyperhtml": "/node_modules/hyperhtml/esm.js"
+      </code>
+    </pre>
+    <p>Next I should put the output from the form into the page instead of showing it in an alert</p>
+    <p>I added some container divs in the page:</p>
+    <pre>
+      <code>
+        &ltbody&gt
+          &ltdiv id="form-container"&gt&lt/div&gt
+          &ltdiv id="todo-container"&gt&lt/div&gt
+        &lt/body&gt
+      </code>
+    </pre>
+    <p><code>RenderForm</code> needs target the new container instead of <code>body</code>:</p>
+    <pre>
+      <code>
+        let container = document.getElementById('form-container')
+      </code>
+    </pre>
+    <p>And a I need a new <code>RenderTodo</code> method which I call instead of <code>alert</code>:</p>
+    <pre>
+      <code>
+        function RenderTodo(todo: Todo) : void {
+          let container = document.getElementById('todo-container')
+      
+          hyper.bind(container)`
+              &lth3&gt${todo.name.value}&lt/h3&gt
+          `
+        }
+      </code>
+    </pre>
+    <p>Now I should show the errors. I need to modify <code>RenderForm</code> so it will accept an error message:</p>
+    <pre>
+      <code>
+        function RenderForm(errorMessage: string = '') : void {
+          let container = document.getElementById('form-container')
+      
+          hyper.bind(container)`
+              &lth1&gttodo app&lt/h1&gt
+              &lth2&gtAdd todo&lt/h2&gt
+              &ltform id="add-form"&gt
+                  &ltp style="color: red"&gt${errorMessage}&lt/p&gt
+                  &ltinput type="text" id="add-name" name="name"/&gt
+                  &ltinput type="submit" value="add"/&gt
+              &lt/form&gt
+          `
+        }
+      </code>
+    </pre>
+    <p>And I need to change the event handler so it will re-render the form after the button is clicked:</p>
+    <pre>
+      <code>
+        document.getElementById('add-form')?.addEventListener('submit', (e) => {
+          e.preventDefault()
+  
+          let formInput = GetAddFormInput()
+  
+          let errorMessage = ''
+  
+          try {
+              let todo = new Todo(formInput)
+      
+              RenderTodo(todo)
+          }
+          catch(error) {
+              errorMessage = error.message
+          }
+          finally {
+              RenderForm(errorMessage)
+          }
+        })
+      </code>
+    </pre>
+    <p>I'm really not keen on these changes to the handler, although it does work surprisingly well</p>
+    <p>I think it will break if I ever call <code>RenderForm</code> and it removes the button. If I call it afterwards and the button is re-added, nothing will know to re-add the event handler</p>
+    <p>Also the try catch feels pretty gross here. I'm thinking it would be better to return some kind of validation object instead of raising an error. Or perhaps I could do some railway oriented programming and have a happy path and a failure path pipeline</p>
+    <p>Either way it's not a problem to solve right now</p>
+    <p>I think I'll try to end the day by having add actually add a todo instead of wiping the only one</p>
+    <p>I'll make a new <code>RenderTodos</code> method which is pretty similar to one of the examples in the docs:</p>
+    <pre>
+      <code>
+        function RenderTodos(todos: Array&ltTodo&gt) : void {
+          let container = document.getElementById('todo-container')
+      
+          hyper.bind(container)`${
+              todos.map(todo =&gt hyper.wire(todo)`
+                  &lth3&gt${todo.name.value}&lt/h3&gt
+              `)
+          }`
+        }
+      </code>
+    </pre>
+    <p>I need to define a list of <code>Todo</code> to store the state in:</p>
+    <pre>
+      <code>
+        let todos: Array&ltTodo&gt = []
+      </code>
+    </pre>
+    <p>And finally use this new method and array in the event handler:</p>
+    <pre>
+      <code>
+        try {
+          let todo = new Todo(formInput)
+          todos.push(todo)
+
+          RenderTodos(todos)
+        }
+      </code>
+    </pre>
+    <p>That was actually much easier than I was expecting. Although for a couple of reasons I think this code will be very temporary</p>
+    <p>Firstly I haven't written and "unit" tests to govern this behaviour. I'd like the array to be a domain object. And given I'm using such a lightweight UI library it should be very easy to test that I get the right output</p>
+    <p>Also, I've just seen that hyperHTML is in maintenance. This isn't <i>necessarily</i> a problem but I should see if there are actively developed libraries which offer the same simplicity</p>
+  </body>
+</html>
+
