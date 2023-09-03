@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #5</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #5</h1>
+    <p>2023-09-03</p>
+    <p>[JavaScript]</p>
+    <p>To start with today I think I'll just do something simple. I'll add the ability to delete a todo. I'll probably end up replacing the code later on today but sometimes you just need something to get your brain working</p>
+    <p>First I should add a delete button to the HTML for each todo</p>
+    <pre>
+      <code>
+        function RenderTodos(todos: Array<Todo>) : void {
+          let container = document.getElementById('todo-container')
+      
+          hyper.bind(container)`${
+              todos.map((todo, index) =&gt hyper.wire(todo)`
+                  &ltform&gt
+                      &lth3&gt${todo.name.value}&lt/h3&gt
+                      &ltinput type="submit" id=${"todo-" + index} value="x"/&gt
+                  &lt/form&gt
+              `)
+            }`
+        }
+      </code>
+    </pre>
+    <p>To wire up the click events I went for <a href="https://www.freecodecamp.org/news/event-delegation-javascript/">event delegation</a> (this is a concept I really need to remember the name of). This means that I can add the event to the <code>todo-container</code> at the start and it will work for all buttons inside that container whenever they are added. This should be much simpler than adding an event each time we render a todo and having to make sure we don't add multiple. As a minor side effect it should mean less CPU and memory are used by the app</p>
+    <pre>
+      <code>
+        function AddTodoEvents(): void {
+          let container = document.getElementById('todo-container')
+      
+          container.addEventListener("submit", (e) => {
+              e.preventDefault()
+      
+              let submitterIndex = parseInt(e.submitter.id.split('-')[1])
+              todos.splice(submitterIndex, 1)
+              
+              RenderTodos(todos)
+          })
+        }
+      </code>
+    </pre>
+    <p>It seems that I hit some minor HTML inconsistencies with my code (that term is probably a bit harsh). It looks like <code>e.target</code> doesn't return the submit button, but instead it returns the form which contains the submit button. Hence in my case I need to use <code>e.submitter</code> instead of <code>e.target</code></p>
+    <p>And finally I need to add those events when the page first loads</p>
+    <pre>
+      <code>
+        document.addEventListener('DOMContentLoaded', () => {
+          RenderForm()
+          AddTodoEvents()
+          ....
+        })
+      </code>
+    </pre>
+    <p>Having typed that up though it seems like putting the index id on the form makes more sense than on the submit button. I'll change it</p>
+    <pre>
+      <code>
+        function RenderForm(errorMessage: string = '') : void {
+          let container = document.getElementById('form-container')
+      
+          hyper.bind(container)`
+              &lth1&gttodo app&lt/h1&gt
+              &lth2&gtAdd todo&lt/h2&gt
+              &ltform id="add-form"&gt
+                  &ltp style="color: red"&gt${errorMessage}&lt/p&gt
+                  &ltinput type="text" id="add-name" name="name"/&gt
+                  &ltinput type="submit" value="add"/&gt
+              &lt/form&gt
+          `
+        }
+      </code>
+    </pre>
+    <pre>
+      <code>
+        function AddTodoEvents(): void {
+          let container = document.getElementById('todo-container')
+      
+          container.addEventListener("submit", (e) => {
+              e.preventDefault()
+      
+              let target = &ltHTMLElement&gte.target
+              let targetIndex = parseInt(target.id.split('-')[1])
+              
+              todos.splice(targetIndex, 1)
+      
+              RenderTodos(todos)
+          })
+        }
+      </code>
+    </pre>
+    <p>This wasn't <i>quite</i> as easy as I was hoping. The target of the event in the handler was too general for TypeScript's taste. Whatever type it was didn't have an <code>id</code> property on it. I needed to cast the target to a <code>HtmlElement</code> before I could use it. Not the end of the world and I still think <code>id</code> makes most sense at the <code>form</code> level</p>
+    <p>Now I'll just fix a minor thing which is bugging me as I manually yesy this code, the text in the add form doesn't clear after the submit is fired</p>
+    <p>Here's the method which will wipe the input:</p>
+    <pre>
+      <code>
+        function ClearAddFormInput() : void {
+          (document.getElementById('add-name') as HTMLInputElement).value = ''
+        }
+      </code>
+    </pre>
+    <p>Which is called as part of the add event:</p>
+    <pre>
+      <code>
+        document.getElementById('add-form').addEventListener('submit', (e) => {
+          e.preventDefault()
+  
+          let formInput = GetAddFormInput()
+  
+          let errorMessage = ''
+  
+          try {
+              let todo = new Todo(formInput)
+              todos.push(todo)
+  
+              ClearAddFormInput()
+              RenderTodos(todos)
+          }
+          ...
+        })
+      </code>
+    </pre>
+    <p>I added a new method instead of a one-liner as starting a statement with a bracket doesn't play nice with the semi-colonless JavaScript I'm trying to write. Thankfully my editor spits out a warning when I do this. Not a terribly helpful warning (something about numbers) but it's better than the old days where I would only know about it at runtime</p>
+  </body>
+</html>
