@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #6</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #6</h1>
+    <p>2023-09-13</p>
+    <p>[JavaScript]</p>
+    <p>Once again I have left things longer than I would like. However the first thing I saw when I opened VS Code was a red squiggly line in a test. I can just start with that instead of remembering what I was up to 😊</p>
+    <p>Here is the add implementation. Nothing very complicated with it:</p>
+    <pre>
+      <code>
+        add(todo: Todo) : void {
+          this.#todos.push(todo)
+        }
+      </code>
+    </pre>
+    <p>Next I will implement the delete. It will just use the index in this pass. I will add some kind of ID next</p>
+    <p>Here is the test:</p>
+    <pre>
+      <code>
+        describe('delete', () => {
+          it('removes the todo from the collection at the specified index', () => {
+              let testTodos = [
+                  new Todo(new AddFormInput("todo 1")),
+                  new Todo(new AddFormInput("todo 2")),
+                  new Todo(new AddFormInput("todo 3"))
+              ]
+      
+              let sut = TodoCollection.create()
+      
+              for (let testTodo of testTodos){
+                  sut.add(testTodo)
+              }
+      
+              sut.delete(1)
+      
+              expect(sut.todos.length).toBe(2)
+              expect(sut.todos[0]).toBe(testTodos[0])
+              expect(sut.todos[1]).toBe(testTodos[1])
+          })
+        })
+      </code>
+    </pre>
+    <p>And the implementation:</p>
+    <pre>
+      <code>
+        delete(index: number) : void {
+          this.#todos.splice(index, 1)
+        }
+      </code>
+    </pre>
+    <p>Running the test still resulted in a failure. I had messed up the indexes I was using on the third assertion</p>
+    <p>Next I was going to make sure that if an array index doesn't exist the code handles it gracefully by doing nothing. However, after writing the test it seems like this is the normal behaviour for splice. I decided to forgo the check for now but I need to keep it in mind when I introduce the IDs</p>
+    <p>One issue with the collection as it currently stands is once developers have got the array they can add and remove items from it at will. I should make the array immutable</p>
+    <p>At first I looked into <code>freeze</code> which is built into JavaScript. However it turns out that TypeScript has a built in type, <code>ReadonlyArray</code> which will do it for me just through the type system. All I needed to do was update the getter signature</p>
+    <pre>
+      <code>
+        get todos() : ReadonlyArray&ltTodo&gt {
+          return this.#todos;
+        }
+      </code>
+    </pre>
+    <p>I think that now I'm at the point where I can wire in this custom collection. After replacing the old <code>todos</code> array in <code>main.ts</code> with the new collection I got a couple of squiggly lines. Once I fixed the errors the code just worked. That was easier than I expected</p>
+    <p>Next I'm going to introduce the new ID to use in the <code>TodoCollection</code>, without it I thing I will struggle with ordering and filtering the collection</p>
+    <p>From past experience, I like to have UUIDs used as IDs within code. The ability to generate them without checking it is unique is very useful. And if the object needs to be saved somewhere that a UUID has issues (such as in a SQL database) then it is possibl,e to have multiple IDs for these contexts</p>
+    <p>Now, currently, there is no need for an ID to be rehydrated. So I think I can get away with the ID just having a <code>create</code> method which will always generate a random value</p>
+    <p>This is what I  came up with:</p>
+    <pre>
+      <code>
+        import { ValueObject } from "./value-object";
+
+        interface IdProps {
+            value: string
+        }
+          
+        class TodoId extends ValueObject<IdProps> {
+            get value () : string {
+              return this.props.value
+            }
+            
+            private constructor (props: IdProps) {
+              super(props)
+            }
+          
+            public static create () : TodoId {
+                return new TodoId({ value: crypto.randomUUID() })
+            }
+        }
+
+        export default TodoId;
+      </code>
+    </pre>
+    <p>I think that is simple enough to not need any unit tests. However, I decided to check something I was worried about, TypScript's structural equality. It seems like currently, a <code>TodoName</code> and a <code>TodoId</code> will be considered equal if they have the same value. This isn't the behaviour I want (although I'm perfectly willing to admit this made be my C# mindset)</p>
+    <p>Thankfully it looks like I can easily fix this by changing the props for each value type to contain the type name, e.g. <code>todoId</code> rather than <code>value</code></p>
+    <p>While digging into this I noticed a couple of errors in the <code>ValueObject</code> class due to how I hacked it in. There was a stray <code>exports</code> in the middle of the code. And I needed to bring in a polyfill for <code>is</code> which I found on the NPM listing for shallow-equal-object</p>
+    <p>Anyway, next thing is to use the new ID in the <code>Todo</code> class</p>
+    <pre>
+      <code>
+        class Todo {
+          #id: TodoId
+          #name: TodoName
+      
+          constructor (input: AddFormInput) {
+              this.#id = TodoId.create()
+              this.#name = TodoName.create(input.name)
+          }
+      
+          get id() {
+              return this.#id
+          }
+      
+          get name() {
+              return this.#name
+          }
+        }
+      </code>
+    </pre>
+    <p>And I added a new test as well</p>
+    <pre>
+      <code>
+        it('sets the id', () => {
+          const sut = new Todo(new AddFormInput('test name'))
+  
+          expect(sut.id.value.length).toBe(36)
+        })
+      </code>
+    </pre>
+    <p>At this point I tried to run the site in the browser and hit a reference issue with <code>crypto</code>. I had to import it in the module because I couldn't access it directly like I could in the browser. But when I did that I needed an import map for the browser but there is no file to import</p>
+    <p>From a bit of a dig it seems like there is a <code>globalThis</code> object t work around top level context being different between node and browsers. Node 16.7.1 didn't add crypto to this but later ones do</p>
+    <p>Thankfully this machine has <a href="https://github.com/coreybutler/nvm-windows">nvm</a> installed to handleinstalling and switching node versions. For some reason I couldn't install the latest but 20.5.1 and had crypto in <code>globalThis</code></p>
+    <p>Next I changed <code>TodoCollection</code> to use the ID for deletes and prevent items with duplicates being added</p>
+    <pre>
+      <code>
+        add(todo: Todo) : void {
+          if (this.#todos.find(x => x.id == todo.id))
+              throw new ArgumentError(`A Todo with an id of ${todo.id.value} has already been added`)
+  
+          this.#todos.push(todo)
+        }
+    
+        delete(id: TodoId) : void {
+          const index = this.#todos.findIndex(x => x.id == id)
+  
+          if (index >= 0) {
+              this.#todos.splice(index, 1)
+          }
+        }
+      </code>
+    </pre>
+    <p>I modified the tests to get them to work with the new signatures. And then added a new test to cover when an ID already exists in the collection</p>
+    <pre>
+      <code>
+        it('throws an error when a todo has already been added with the same ID', () => {
+          const testTodo = new Todo(new AddFormInput("test todo name"))
+          const sut = TodoCollection.create()
+  
+          sut.add(testTodo)
+          
+          const action = () => {
+              sut.add(testTodo)
+          }
+          
+          expect(action).toThrowError(ArgumentError)
+        })
+      </code>
+    </pre>
+    <p>I do have some doubts about the way I'm comparing IDs. I think I'm currently comparing the references instead of their values. This is not currently an issue bt will be when you can rehydrate an ID</p>
+    <p>These changes have broken the webpage as <code>delete</code> has changed. I now need to fix that</p>
+    <p>And I immediately hit an issue!</p>
+    <p>The webpage loses the typed ID when it renders the page and as I've said far too many times in this post, you can't currently rehydrate an ID</p>
+    <p>I think the quickest fix would be to change delete to take a string</p>
+    <pre>
+      <code>
+        delete(id: string) : void {
+          const index = this.#todos.findIndex(x => x.id.value == id)
+  
+          if (index >= 0) {
+              this.#todos.splice(index, 1)
+          }
+        }
+      </code>
+    </pre>
+    <p>I did then have to change how I convert the id in the HTML back into something that I can pass to <code>delete</code>. It was just a small piece of string manipulation</p>
+    <pre>
+      <code>
+        const target = <HTMLElement>e.target
+          const idIndex = target.id.indexOf('-')
+  
+          const todoId = target.id.substring(idIndex + 1)
+  
+          todos.delete(todoId)
+          RenderTodos(todos)
+      </code>
+    </pre>
+    <p>As the IDs should now be globally unique maybe I could just store that in the HTML. I'll decide whether to do that another time</p>
+  </body>
+</html>

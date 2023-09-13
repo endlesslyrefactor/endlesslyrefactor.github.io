@@ -123,7 +123,7 @@
       </code>
     </pre>
     <p>I added a new method instead of a one-liner as starting a statement with a bracket doesn't play nice with the semi-colonless JavaScript I'm trying to write. Thankfully my editor spits out a warning when I do this. Not a terribly helpful warning (something about numbers) but it's better than the old days where I would only know about it at runtime</p>
-    <p>I think now I'm going to turn the array into a domain object. This should allow be to encapsulate the sorting and filtering behaviour I will need soon, and allow me to have some better indetifiers than the array index</p>
+    <p>I think now I'm going to turn the array into a domain object. This should allow be to encapsulate the sorting and filtering behaviour I will need soon, and allow me to have some better identifiers than the array index</p>
     <p>Firstly I'll write a test for creating the new class. I've decided to use a static factory method as I'm almost certain I'll want more than one kind of constructor in the future (maybe a rehydrate and a new, maybe different ones for different types of todo). But also I do just like them more than plain constructors</p>
     <p>The test just checks that when we call the factory method there are no todos in the collection:</p>
     <pre>
