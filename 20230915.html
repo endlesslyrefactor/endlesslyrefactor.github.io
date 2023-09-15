@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #7</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #7</h1>
+    <p>2023-09-15</p>
+    <p>[JavaScript]</p>
+    <p>I was hoping to tackle the saving of the apps state beyond the lifetime of the browser being open. However I've left things far too late in the day to get my head around that</p>
+    <p>Instead I will just add some small things to keep the momentum going</p>
+    <p>First I think I will add a creation date to <code>Todo</code></p>
+    <p>I made a unit test to check that the date is set on construction</p>
+    <pre>
+      <code>
+        it('sets the creation date', () => {
+          const expectedDate = new Date(2023, 8, 13, 22, 45, 55, 978)
+          const sut = new Todo(() => expectedDate, new AddFormInput('a name'))
+  
+          expect(sut.createdAt).toBe(expectedDate)
+        })
+      </code>
+    </pre>
+    <p>Past experience has taught me to be very wary of calling <code>new Date()</code> (or the equivalent in any language) from within a class. It always makes testing a nightmare. Especially when you want to test some kind of date comparison</p>
+    <p>Instead I always want to inject some kind of date provider. As I don't have a DI framework or anything I'll just pass in a noddy arrow function for now. If I need to do this in many places then I'll look at coding up some default to avoid copy-pasted code</p>
+    <pre>
+      <code>
+        let todo = new Todo(() => new Date(), formInput)
+      </code>
+    </pre>
+    <p>Now I need to make the test pass. I just added a new private field to <code>Todo</code></p>
+    <pre>
+      <code>
+        this.#createdAt = dateProvider()
+      </code>
+    </pre>
+    <p>Added a new property to return it without allowing it to be set outside the class</p>
+    <pre>
+      <code>
+        get createdAt() {
+          return this.#createdAt
+        }
+      </code>
+    </pre>
+    <p>And set the value in the constructor</p>
+    <pre>
+      <code>
+        this.#createdAt = dateProvider()
+      </code>
+    </pre>
+    <p>There is still some work to do with this as I want the creation date to be immutable and this is the first time I am using a non-primative object which I haven't coded myself (and so baked in the immutability)</p>
+    <p>I've read about JavaScrpt's ability to freeze an object. I'd rather immutability be baked into the types but I thing this will do for now as I don't want to bring in a library at the moment</p>
+    <p>And again I hit an issue, although a <code>Date</code> can be frozen, that doesn't make immutable. As you change a date using methods they are able to change the internal state of the object and bypass the frozen properties</p>
+    <p>There is quite a good <a href="https://stackoverflow.com/questions/34907311/is-there-a-way-to-object-freeze-a-javascript-date">stack overflow</a> on it. And a <a href="https://levelup.gitconnected.com/the-complete-guide-to-immutability-in-typescript-99154f859fdb">guide</a> I found mentions a library I coud look into</p>
+    <p>For now I will just write a failing test so I know where to pick up next time</p>
+    <pre>
+      <code>
+        it('makes the creation date immutable', () => {
+          const sut = new Todo(
+              () => new Date(2023, 8, 13, 22, 45, 55, 978),
+              new AddFormInput('a name')
+          )
+  
+          sut.createdAt.setFullYear(2000)
+  
+          expect(sut.createdAt.getFullYear()).toBe(2023)
+        })
+      </code>
+    </pre>
+  </body>
+</html>
