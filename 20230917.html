@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #8</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #8</h1>
+    <p>2023-09-17</p>
+    <p>[Javascript]</p>
+    <p>Carrying on from where I was the other day, I need some way to make an immutable date. I still don't want to introduce a library. And I've had a quick skim of the MDN page on <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy">proxies</a> and I don't think it's what I want either. It seems like a neat way of changing the beaviour of an object in a mostly invisible way. However I <i>want</i> this to be visible to maximise the beneft I get from typescript</p>
+    <p>I think I will make a minimal date class which will wrap a date and protect it from change</p>
+    <pre>
+      <code>
+        import { ValueObject } from "./value-object";
+
+
+        interface DateProps {
+            timestamp: number
+        }
+          
+        class ImmutableDate extends ValueObject&ltDateProps&gt {
+            get timestamp () : number {
+              return this.props.timestamp
+            }
+            
+            private constructor (props: DateProps) {
+              super(props)
+            }
+          
+            public static create () : ImmutableDate {
+                return new ImmutableDate({ timestamp: new Date().valueOf()})
+            }
+
+            public static createFromDate (date: Date) : ImmutableDate {
+                return new ImmutableDate({ timestamp: date.valueOf()})
+            }
+        }
+
+        export default ImmutableDate
+      </code>
+    </pre>
+    <p>I decided storing the epoch timestamp would be simpler than storing an actual <code>Date</code>. If I went with a <code>Date</code> I think I would either need to make the contructors mimic the <code>Date</code> constructor including handling errors etc, or I would have to clone a passed in <code>Date</code> to make sure that a <code>Date</code> couldn't be modified via a reference to it held outside the new class</p>
+    <p>Given this is piggy backing off <code>ValueObject</code> I don't really think it needs tests. If I was being thorough I would add immutability and equality tests</p>
+    <p>I think the next thing should be to display the created dates and then to flip the order</p>
+    <p>I've added a new display property to <code>ImmutableDate</code></p>
+    <pre>
+      <code>
+        get displayString () : string {
+          return new Date(this.timestamp).toLocaleString('en-GB')
+        }
+      </code>
+    </pre>
+    <p>To me this feels very temporary code. In the real world I'm not sure how much I would care about seeing the created date, I can just see it being used for ordering and debugging. Even if I do decide to keep it, how the string should look should be part of the UI templating and not the domain logic</p>
+    <p>Next I decided to add a couple of functions to the collection which will return the todos in ascending/descending order. Name-wish funtions seemed to work better than properties but I get the feeling I'm not being consistent with this at all</p>
+    <pre>
+      <code>
+        getDescending() : ReadonlyArray<Todo> {
+          return this.#todos.slice().sort((a, b) => b.createdAt.timestamp - a.createdAt.timestamp)
+        }
+        
+    
+        getAscending() : ReadonlyArray<Todo> {
+          return this.#todos.slice().sort((a, b) => a.createdAt.timestamp - b.createdAt.timestamp)
+        }
+      </code>
+    </pre>
+    <p>And some tests</p>
+    <pre>
+      <code>
+        describe('getDescending', () => {
+          it('returns the todos from newest to oldest', async () => {
+              const testTodos = [
+                  new Todo(() => ImmutableDate.createFromDate(new Date(2023, 9, 17, 16, 42, 1)), new AddFormInput("todo 1")),
+                  new Todo(() => ImmutableDate.createFromDate(new Date(2023, 9, 17, 16, 42, 2)), new AddFormInput("todo 2")),
+                  new Todo(() => ImmutableDate.createFromDate(new Date(2023, 9, 17, 16, 42, 3)), new AddFormInput("todo 3"))
+              ]
+      
+              const sut = TodoCollection.create()
+      
+              for (let testTodo of testTodos){
+                  sut.add(testTodo)
+              }
+      
+              expect(sut.getDescending()[0]).toBe(testTodos[2])
+              expect(sut.getDescending()[1]).toBe(testTodos[1])
+              expect(sut.getDescending()[2]).toBe(testTodos[0])
+          })
+      })
+      
+      describe('getAscending', () => {
+          it('returns the todos from oldest to newest', () => {
+              const testTodos = [
+                  new Todo(() => ImmutableDate.createFromDate(new Date(2023, 9, 17, 16, 42, 1)), new AddFormInput("todo 1")),
+                  new Todo(() => ImmutableDate.createFromDate(new Date(2023, 9, 17, 16, 42, 2)), new AddFormInput("todo 2")),
+                  new Todo(() => ImmutableDate.createFromDate(new Date(2023, 9, 17, 16, 42, 3)), new AddFormInput("todo 3"))
+              ]
+      
+              const sut = TodoCollection.create()
+      
+              for (let testTodo of testTodos){
+                  sut.add(testTodo)
+              }
+      
+              expect(sut.getAscending()[0]).toBe(testTodos[0])
+              expect(sut.getAscending()[1]).toBe(testTodos[1])
+              expect(sut.getAscending()[2]).toBe(testTodos[2])
+          })
+      })
+      </code>
+    </pre>
+    <p>I went on a couple of detours writing this. The new methods didn't seem to change the order at all. At first I thought this was due to <code>sort</code> updating the array in place. I saw that ES2023 has a <code>toSorted</code> method which will return a sorted copy of the original array. But it didn't look like TypeScript supported it yet. <i>Maybe</i> it would work by targetting ESNext but I didn't want to aim for a moving target. As that wasn't an option I sliced the array first to make a copy</p>
+    <p>This wasn't actually the cause of my issue. I originally didn't pass in a specific time when making the dates, which meant they were made at the same millisecond so there was no sorting to do in either direction. This was quite annoying as I'd specifically added the mechanism to avoid testing problems!</p>
+    <p>Now I want to hook this up in the UI. I added a new static form to the webpage</p>
+    <pre>
+      <code>
+        &ltdiv id="todo-filter-container"&gt
+          &ltform&gt
+            &ltlabel&gtOrder Ascending&ltinput type="checkbox" id="order-ascending-filter" checked /&gt&lt/label&gt
+          &lt/form&gt
+        &lt/div&gt
+      </code>
+    </pre>
+    <p>The checked attribute on the form is <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox#additional_attributes">supposed</a> to be the default state when the page loads. For some reason Firefox is remembering the state of the checkbox from before the page reloaded. I'm not really in the mood to work out what's happening with it. If it annoys me I'll revisit it later</p>
+    <p>I also added an event handler to <code>main.ts</code> and had the method which renders todos check what the current state of the checkbox is</p>
+    <pre>
+      <code>
+        function RenderTodos(todoCollection: TodoCollection) : void {
+          let container = document.getElementById('todo-container')
+          let todos : ReadonlyArray<Todo> = []
+          
+          if ((document.getElementById('order-ascending-filter') as HTMLInputElement).checked ) {
+              todos = todoCollection.getAscending()
+          } else {
+              todos = todoCollection.getDescending()
+          }
+      
+          hyper.bind(container)`${
+              todos.map((todo) => hyper.wire(todo)`
+                  &ltform id=${"todo-" + todo.id.value}&gt
+                      &lth3&gt${todo.name.value}&lt/h3&gt
+                      &ltp&gt${todo.createdAt.displayString}&lt/p&gt
+                      &ltinput type="submit" value="x"/&gt
+                  &lt/form&gt
+              `)
+          }`
+        }
+      </code>
+    </pre>
+    <pre>
+      <code>
+        function AddFilterEvents(): void {
+          document.getElementById('order-ascending-filter').addEventListener("change", (e) => {
+              e.preventDefault()
+      
+              RenderTodos(todoCollection)
+          })
+        }
+      </code>
+    </pre>
+    <p>At that point I think I will call it quits for today. I really need to tackle saving the app's state next time</p>
+  </body>
+</html>
