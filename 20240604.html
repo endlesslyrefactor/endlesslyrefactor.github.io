@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #9</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #9</h1>
+    <p>2023-09-17</p>
+    <p>[Javascript]</p>
+    <p>Well. I've certainly left it far too long since picking this up again</p>
+    <p>I've been nervous about how I'm going to save state in this todo app. My plan is to come up with a way to be able to sync state between instances without using a backend server. That doesn't sound trivial!</p>
+    <p>I bought a book which I hoped would give me some ideas (<a href="https://michaelperry.net/the-art-of-immutable-architecture/">The Art of Immutable Architecture</a>) but I have not managed to open it yet. Recently I listened to a podcast on <a href="https://syntax.fm/show/739/the-lofi-movement-building-local-first-apps">LoFi</a> development which has a lot of overlap with what I want. It made things seem much more approachable, and I still really want to learn some TypeScript, so I thought I should pick things up again</p>
+    <p>I don't think I will get a huge amount done today, so I'll read through the blog posts from last time and try and get things running again</p>
+    <p>Things don't start well, I try running <code>npm test</code> and get some errors saying <code>globalThis.crypto.randomUUID()</code> doesn't exist. That doesn't sound right to me so I look through the blog posts I wrote</p>
+    <p><a href="https://endlesslyrefactor.github.io/20230913.html">This</a> one mentions implementing that code and says that it didn't exist in old versions of Node. A quick use of <code>nvm use 20.5.1</code> in an admin window and the tests are working again</p>
+    <p>Now I need to work out how to run the site. The standard <code>npm start</code> doesn't find a command to run. But maybe that makes sense? The whole point was not to have a backend server for this project</p>
+    <p>Opening the HTML file results in a CORS error. I do remember having a lot of faff with that as I'm on <code>localhost</code>. I try <code>node index.js</code> which runs a site which seems to work no problem</p>
+    <p>I feel like I should add this to a readme:</p>
+    <pre>
+      <code>
+        ## Environment
+        This code has been tested with Node 20.5.1. It may work on earlier versions but requires a `globalThis` object with `crypto`.
+
+        ## Run Tests
+
+        `npm test`
+
+        ## Run Site
+
+        `node index.js`
+      </code>
+    </pre>
+    <p>I'll push that before I get into anything else</p>
+    <p>As I am sure I will make typos at some point I think I will work on making the name of a <code>todo</code> editable. I'm not sure how I will do the UI yet but I can work on the backend</p>
+    <p>First I add a test:</p>
+    <pre>
+      <code>
+        describe('updateName', () => {
+          it('sets the name', () => {
+              const expectedName = 'expected name'
+              const sut = new Todo(() => ImmutableDate.create(), new AddFormInput('original name'))
+      
+              sut.updateName(expectedName)
+      
+              expect(sut.name.value).toBe(expectedName)
+          })
+        })
+      </code>
+    </pre>
+    <p>And a nice easy implementation:</p>
+    <pre>
+      <code>
+        public updateName(newName : string) : void {
+          this.#name = TodoName.create(newName)
+        }
+      </code>
+    </pre>
+    <p>I then need a test to cover when the provided name is invalid:</p>
+    <pre>
+      <code>
+        it('throws an error if the name is invalid', () => {
+          const originalName = 'original name'
+          const invalidName = ''
+          const sut = new Todo(() => ImmutableDate.create(), new AddFormInput(originalName))
+          
+          const action = () => {
+              sut.updateName(invalidName)
+          }
+  
+          expect(action).toThrowError(ArgumentError)
+        })
+      </code>
+    </pre>
+    <p>But actually, it would be easier to reason about, and mroe shift-lefty, if the update method took a <code>todo-name</code> instead of a string. There would be no doubt about whether the state of the <code>todo</code> had changed and it would discourage strings being passed around the codebase</p>
+    <p>I delete that second test and update the first one:</p>
+    <pre>
+      <code>
+        it('sets the name', () => {
+          const expectedName = TodoName.create('expected name')
+          const sut = new Todo(() => ImmutableDate.create(), new AddFormInput('original name'))
+  
+          sut.updateName(expectedName)
+  
+          expect(sut.name.value).toBe(expectedName.value)
+        })
+      </code>
+    </pre>
+    <p>And the implementation:</p>
+    <pre>
+      <code>
+        public updateName(newName : TodoName) : void {
+          this.#name = newName
+        }
+      </code>
+    </pre>
+    <p>I think that's where I will pause things tonight. I'm pleased I managed to pick this up again</p>
+  </body>
+</html>

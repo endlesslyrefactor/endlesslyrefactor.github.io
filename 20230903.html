@@ -92,7 +92,7 @@
       </code>
     </pre>
     <p>This wasn't <i>quite</i> as easy as I was hoping. The target of the event in the handler was too general for TypeScript's taste. Whatever type it was didn't have an <code>id</code> property on it. I needed to cast the target to a <code>HtmlElement</code> before I could use it. Not the end of the world and I still think <code>id</code> makes most sense at the <code>form</code> level</p>
-    <p>Now I'll just fix a minor thing which is bugging me as I manually yesy this code, the text in the add form doesn't clear after the submit is fired</p>
+    <p>Now I'll just fix a minor thing which is bugging me as I manually test this code, the text in the add form doesn't clear after the submit is fired</p>
     <p>Here's the method which will wipe the input:</p>
     <pre>
       <code>
