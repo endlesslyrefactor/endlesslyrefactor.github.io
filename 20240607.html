@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #10</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #10</h1>
+    <p>2024-06-07</p>
+    <p>[Javascript]</p>
+    <p>
+      Tonight I've decided to do some dev work on my laptop which has not worked
+      on this repo before. Immediately I hit some problems
+    </p>
+    <p>
+      Firstly I needed to install a newer version of node via <code>nvm</code>.
+      The download seemed to work but <code>npm install</code> threw an error
+      about <code>npm-cli</code>
+    </p>
+    <p>
+      I <i>think</i> that the installer was failing to update the path variable
+      for node because a home automation script was running in node at the same
+      time
+    </p>
+    <p>
+      In the end the fix was quite simple. I updated <code>nvm</code> and
+      rebooted my machine to be safe. And then uninstalled and reinstalled the
+      version of node I wanted to use
+    </p>
+    <p>
+      That let me install packaged but running the server threw errors because
+      <code>main.js</code> couldn't be found. I realised I had installed
+      TypeScript globally on the other machine which didn't seem like the best
+      idea. I added it to the <code>packages.json</code> so it would be
+      installed automatically from now on
+    </p>
+    <pre>
+      <code>
+        npm install typescript --save-dev
+      </code>
+    </pre>
+    <p>
+      Then I remembered that I was missing something obvious from the readme. I
+      added a section about running <code>npx tsc</code> to build the TypeScript
+    </p>
+    <p>
+      After all that I feel like I should just do something simple tonight. I
+      will try and extend a todo so it is a description
+    </p>
+    <p>
+      As a description is just another string backed value object I created a
+      <code>TodoDescription</code> based off the <code>TodoName</code> code I
+      already had. But I increased the maximum allowable size to 500. That
+      number was picked from thin air but it should be very easy to chain later
+    </p>
+    <p>
+      I then added the description to the <code>Todo</code> class and modified
+      the tests and the main file to know about them
+    </p>
+    <p>
+      I think I will call it there tonight. Next I should make the description
+      editable and make a UI to set it
+    </p>
+  </body>
+</html>
