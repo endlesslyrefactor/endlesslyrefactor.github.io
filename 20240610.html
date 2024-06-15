@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #11</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #11</h1>
+    <p>2024-06-10</p>
+    <p>[Javascript]</p>
+    <p>
+      Today I feel I should continue with where I left off. Firstly I'll write a
+      test check that the new description on a todo is editable
+    </p>
+    <pre>
+      <code>
+        describe('updateDescription', () => {
+          it('sets the description', () => {
+              const expectedDescription = TodoDescription.create('expected description')
+              const sut = new Todo(
+                  () => ImmutableDate.create(), new AddFormInput(validName, 'orignial description')
+              )
+      
+              sut.updateDescription(expectedDescription)
+      
+              expect(sut.description.value).toBe(expectedDescription.value)
+          })
+        })
+      </code>
+    </pre>
+    <p>
+      Obviously that test fails at the moment as
+      <code>updateDescription</code> doesn't exist
+    </p>
+    <pre>
+      <code>
+        public updateDescription(newDescription: TodoDescription) : void {
+          this.#description = newDescription
+        }
+      </code>
+    </pre>
+    <p>
+      The test now passes so I should work on making the description visible in
+      the UI
+    </p>
+    <p>
+      Adding the description to the todo UI was a simple one-liner in
+      <code>RenderTodos</code>
+    </p>
+    <pre>
+      <code>
+        <p>${todo.description.value}</p>
+      </code>
+    </pre>
+    <p>
+      Adding the description to the form required a couple of similar
+      one-liners. Basically each line which referred to
+      <code>add-name</code> needed a corresponding line for
+      <code>add-description</code>
+    </p>
+    <p>
+      When testing the code I ran into a minor error. If I filled in the name
+      for a new todo correctly but had an invalid value for description, then
+      the error message I got was
+      <code>Name (22) must be between 5 and 500 characters</code>. I'm sure I've
+      just made a copy-paste error somewhere with the description
+    </p>
+    <p>
+      Yep. Seconds after typing that I open the <code>TodoDescription</code> and
+      immediately see that line 33 specifically starts the error message with
+      "Name". Nice and easy to fix
+    </p>
+    <p>
+      I think I will leave it there today. Next I feel like I should make
+      created todos editable. I think that ideally I would have the todo
+      switched out in place with a form
+    </p>
+  </body>
+</html>
