@@ -21,30 +21,30 @@
     <p>So, to start with I best add an edit button</p>
     <pre>
       <code>
-        <form id=${"todo-" + todo.id.value}>
-          <h3>${todo.name.value}</h3>
-          <p>${todo.description.value}</p>
-          <p>${todo.createdAt.displayString}</p>
-          <input type="button" value="edit"/>
-          <input type="submit" value="x"/>
-        </form>
+        &ltform id=${"todo-" + todo.id.value}&gt
+          &lth3&gt${todo.name.value}&lt/h3&gt
+          &ltp&gt${todo.description.value}&lt/p&gt
+          &ltp&gt${todo.createdAt.displayString}&lt/p&gt
+          &ltinput type="button" value="edit"/&gt
+          &ltinput type="submit" value="x"/&gt
+        &lt/form&gt
       </code>
     </pre>
     <p>Wait, we live in the future. I can have a nice edit emoji as the value instead of the word "edit". There's probably a better "x" available too</p>
     <pre>
       <code>
-        <input type="button" value="🖋"/>
-        <input type="submit" value="❌"/>
+        &ltinput type="button" value="🖋"/&gt
+        &ltinput type="submit" value="❌"/&gt
       </code>
     </pre>
     <p>Hmmm. I like the cross but all the edit options are a bit pants. The cog looks more like a target to me so I went with a pen. I'll probably revisit this later as it's not very accessible at the moment</p>
     <p>Next, I'm not sure I like the new input being of type button. Maybe it should be a second submit? Stack overflow says there's something called a formaction, maybe that's what I want?</p>
-    <h1>Currently think that button is find as it is not submitting the form to the server. But maybe the delete and the future save on the form should be a formaction</h1>
+    <p>Currently I think that button is fine as it is not submitting the form to the server. But maybe the delete and the future save on the form should be a formaction</p>
     <p>Next I need to sort out the events for these new buttons. There was a bit of back and forth with this and as I didn't write this as I went along I've probably forgotten some of the twiddly bits</p>
     <p>I have given the current todo form a classname events from it can easily be identified later</p>
     <pre>
       <code>
-        <form id=${"todo-" + todo.id.value} class="todo-view"></form>
+        &ltform id=${"todo-" + todo.id.value} class="todo-view"&gt&lt/form&gt
       </code>
     </pre>
   </body>
@@ -52,13 +52,13 @@
   <p>I then made a new form for editing a todo</p>
   <pre>
     <code>
-      <form id=${"todo-" + todo.id.value} class="todo-editor">
-        <input>${todo.name.value}</input>
-        <input>${todo.description.value}</input>
-        <input>${todo.createdAt.displayString}</input>
-        <input type="button" value="❌"/>
-        <input type="submit" value="✔"/>
-      </form>
+      &ltform id=${"todo-" + todo.id.value} class="todo-editor"&gt
+        &ltinput&gt${todo.name.value}&lt/input&gt
+        &ltinput&gt${todo.description.value}&lt/input&gt
+        &ltinput&gt${todo.createdAt.displayString}&lt/input&gt
+        &ltinput type="button" value="❌"/&gt
+        &ltinput type="submit" value="✔"/&gt
+      &lt/form&gt
     </code>
   </pre>
   <p>I also moved these forms into their own render function which is called by the map. This render function has an if statement to decide whether to render the view or the editor. I couldn't work out how to get a conditional to work inside of the string template, but looking at it now I think the method improves things anyway</p>
@@ -67,23 +67,23 @@
       function RenderTodo(todo: Todo) : WiredTemplateFunction {
         if (todoBeingEdited === todo.id.value)
             return hyper.wire(todo)`
-                <form id=${"todo-" + todo.id.value} class="todo-editor">
-                    <input>${todo.name.value}</input>
-                    <input>${todo.description.value}</input>
-                    <input>${todo.createdAt.displayString}</input>
-                    <input type="button" value="❌"/>
-                    <input type="submit" value="✔"/>
-                </form>
+                &ltform id=${"todo-" + todo.id.value} class="todo-editor"&gt
+                    &ltinput&gt${todo.name.value}&lt/input&gt
+                    &ltinput&gt${todo.description.value}&lt/input&gt
+                    &ltinput&gt${todo.createdAt.displayString}&lt/input&gt
+                    &ltinput type="button" value="❌"/&gt
+                    &ltinput type="submit" value="✔"/&gt
+                &lt/form&gt
             `
     
         return hyper.wire(todo)`
-            <form id=${"todo-" + todo.id.value} class="todo-view">
-                <h3>${todo.name.value}</h3>
-                <p>${todo.description.value}</p>
-                <p>${todo.createdAt.displayString}</p>
-                <input type="button" value="🖋"/>
-                <input type="submit" value="🗑"/>
-            </form>
+            &ltform id=${"todo-" + todo.id.value} class="todo-view"&gt
+                &lth3&gt${todo.name.value}&lt/h3&gt
+                &ltp&gt${todo.description.value}&lt/p&gt
+                &ltp&gt${todo.createdAt.displayString}&lt/p&gt
+                &ltinput type="button" value="🖋"/&gt
+                &ltinput type="submit" value="🗑"/&gt
+            &lt/form&gt
         `
       }
     </code>

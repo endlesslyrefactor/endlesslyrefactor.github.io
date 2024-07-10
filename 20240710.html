@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #13</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #13</h1>
+    <p>2024-07-10</p>
+    <p>[Javascript]</p>
+    <p>I suffered a bit of a mental block last time I tried to pick this up. I don't expect to get much done tonight but I'll be happy if I get the todo object supporting updates in a way I can use in the UI</p>
+    <p>Firstly, I've just seen that opening a todo up for editing creates an input for the created at time. I don't want that to be changed at all and switching an <code>input</code> tag to a <code>p</code> tag is a very simple change</p>
+    <p>Next I feel like the edit form should label the inputs. I'll get myself confused when testing if I don't have that. And I've realised I'm putting the current value after the input instead of as the value of the input</p>
+    <p>Both of those changes are simple. And suggest it's been a while since I've done any web development</p>
+    <pre>
+      <code>
+        return hyper.wire(todo)`
+          &ltform id=${"todo-" + todo.id.value} class="todo-editor"&gt
+              &ltlabel&gtName: &ltinput value="${todo.name.value}"/&gt&lt/label&gt
+              &ltlabel&gtDescription: &ltinput value="${todo.description.value}"/&gt&lt/label&gt
+              &ltp&gtCreated at: ${todo.createdAt.displayString}&lt/p&gt
+              &ltinput type="button" value="❌"/&gt
+              &ltinput type="submit" value="✔"/&gt
+          &lt/form&gt
+        `
+      </code>
+    </pre>
+    <p>I'll create a new <code>UpdateFormInput</code> class to be passed in by the edit form. This is basically a copy-paste from the <code>AddFormInput</code>. I didn't want to re-use the existing class because at some point there will be many more options than there are for the add form</p>
+    <pre>
+      <code>
+        class UpdateFormInput {
+          #name = ''
+          #description = ''
+      
+          constructor (name: string, description: string) {
+              this.#name = name
+              this.#description = description
+          }
+      
+          get name() {
+              return this.#name
+          }
+      
+          get description() {
+              return this.#description
+          }
+        }
+      
+        export default UpdateFormInput
+      </code>
+    </pre>
+    <p>Next I added an update method to the <code>Todo</code> class and made the existing <code>updateName</code> and <code>updateDescription</code> methods private. As they are one-liners I <em>could</em> have removed them. But I'm thinking adding a stub for history might be a good idea for this stage, if only to make testing easier</p>
+    <pre>
+      <code>
+        public update(input: UpdateFormInput) : void {
+          let newName = TodoName.create(input.name)
+          let newDescription = TodoDescription.create(input.description)
+  
+          if (this.#name != newName)
+              this.updateName(newName)
+  
+          if (this.#description != newDescription)
+              this.updateDescription(newDescription)
+          }
+      
+          private updateName(newName : TodoName) : void {
+              this.#name = newName
+          }
+      
+          private updateDescription(newDescription: TodoDescription) : void {
+              this.#description = newDescription
+          }
+      </code>
+    </pre>
+    <p>Add I add some basic tests for this new method</p>
+    <pre>
+      <code>
+        describe('update', () => {
+          it('sets the name', () => {
+              const expectedName = 'expected name'
+              const sut = new Todo(() => ImmutableDate.create(), new AddFormInput(validName, validDescription))
+      
+              sut.update(new UpdateFormInput(expectedName, validDescription))
+      
+              expect(sut.name.value).toBe(expectedName)
+          })
+      
+          it('sets the description', () => {
+              const expectedDescription = 'expected description'
+              const sut = new Todo(() => ImmutableDate.create(), new AddFormInput(validName, validDescription))
+      
+              sut.update(new UpdateFormInput(validName, expectedDescription))
+      
+              expect(sut.description.value).toBe(expectedDescription)
+          })
+
+          it('throws and error if the name is invalid', () => {
+              const sut = new Todo(() => ImmutableDate.create(), new AddFormInput(validName, validDescription))
+      
+              const action = () => {
+                  sut.update(new UpdateFormInput(' ', validDescription))
+              }
+      
+              expect(action).toThrow(ArgumentError)
+          })
+          
+          it('throws and error if the description is invalid', () => {
+              const sut = new Todo(() => ImmutableDate.create(), new AddFormInput(validName, validDescription))
+      
+              const action = () => {
+                  sut.update(new UpdateFormInput(validName, ' '))
+              }
+      
+              expect(action).toThrow(ArgumentError)
+          })
+        })
+      </code>
+    </pre>
+    <p>Whilst I was in the file I decided to add the failure tests for the constructor as well. I don't know how I missed them before</p>
+    <pre>
+      <code>       
+        it('throws and error if the name is invalid', () => {
+          const action = () => {
+              new Todo(() => ImmutableDate.create(), new AddFormInput(' ', validDescription))
+          }
+
+            expect(action).toThrow(ArgumentError)
+        })
+        
+        it('throws and error if the description is invalid', () => {
+            const action = () => {
+                new Todo(() => ImmutableDate.create(), new AddFormInput(validName, ' '))
+            }
+
+            expect(action).toThrow(ArgumentError)
+        })
+      </code>
+    </pre>
+    <p>I think that might be me done for the night. Next I feel I should add some kind of stub history and test that I'm only updating things on the todo if they need it. And I've realised I'm not checking the error messages that the value objects spit out. I feel I should test them as I know I've messed up with that in the past</p>
+  </body>
+</html>
