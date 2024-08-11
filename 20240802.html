@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Todo app #14</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <h1>Todo app #14</h1>
+    <p>2024-08-02</p>
+    <p>[Javascript]</p>
+    <p>Yesterday evening I did some work on this repo but didn't bother to blog about it. I added the history to the todo class. I don't think the choices I've made will last forever, but at least there's something there which can be modified later</p>
+    <p>This time I'll start by hooking up the update form as I think the update logic is now pretty solid</p>
+    <p>From playing with the code, I'm thinking a <code>get</code> method on the <code>TodoCollection</code> might be nice. I don't really want to get the <code>todos</code> from the collection and then pass in a lambda every time I want to grab a todo by id</p>
+    <p>Firsty I added a couple of tests, one for when the id exists in the colection, one for when it does not</p>
+    <pre>
+      <code>
+        describe('get', () => {
+          it('returns the todo if the one exists with the ID', () => {
+              const testTodos = [
+                  new Todo(() => ImmutableDate.create(), new AddFormInput("todo 1", validDescription)),
+                  new Todo(() => ImmutableDate.create(), new AddFormInput("todo 2", validDescription)),
+                  new Todo(() => ImmutableDate.create(), new AddFormInput("todo 3", validDescription))
+              ]
+      
+              const sut = TodoCollection.create()
+      
+              for (let testTodo of testTodos){
+                  sut.add(testTodo)
+              }
+      
+              const actual = sut.get(testTodos[1].id.value)
+      
+              expect(actual).toBe(testTodos[1])
+          })
+      
+          it('throws an error if no todo exists with the ID', () => {
+              const testTodos = [
+                  new Todo(() => ImmutableDate.create(), new AddFormInput("todo 1", validDescription)),
+                  new Todo(() => ImmutableDate.create(), new AddFormInput("todo 2", validDescription)),
+                  new Todo(() => ImmutableDate.create(), new AddFormInput("todo 3", validDescription))
+              ]
+      
+              const testId = globalThis.crypto.randomUUID()
+              const sut = TodoCollection.create()
+      
+              for (let testTodo of testTodos){
+                  sut.add(testTodo)
+              }
+              
+              const action = () => {
+                  sut.get(testId)
+              }
+              
+              expect(action).toThrow(ArgumentError)
+              expect(action).toThrow(`A Todo with an id of ${testId} does not exist`)
+          })
+        })
+      </code>
+    </pre>
+    <p>And then I wrote the implementation</p>
+    <pre>
+      <code>
+        get(id: string) : Todo {
+          const index = this.#todos.findIndex(x => x.id.value == id)
+  
+          if (index == -1) 
+              throw new ArgumentError(`A Todo with an id of ${id} does not exist`)
+  
+          return this.#todos[index]
+        }
+      </code>
+    </pre>
+    <p>The tests pass. So next I need to update the ui code so it gets the todo from the collection and then updates it</p>
+    <p>First I need to update the update form so the inputs have classes on them so I can grab them later</p>
+    <pre>
+      <code>
+        &ltlabel&gtName: &ltinput class="update-name" value="${todo.name.value}"/&gt&lt/label&gt
+        &ltlabel&gtDescription: &ltinput class="update-description" value="${todo.description.value}"/&gt&lt/label&gt
+      </code>
+    </pre>
+    <p>Then I need a method which will convert the form into an <code>UpdateFormInput</code> object</p>
+    <pre>
+      <code>
+        function GetUpdateFormInput(todoId : string): UpdateFormInput {
+          let todo = document.getElementById('todo-' + todoId)
+      
+          return new UpdateFormInput(
+              (todo.querySelector('.update-name') as HTMLInputElement).value ?? '',
+              (todo.querySelector('.update-description') as HTMLInputElement).value ?? '',
+          );
+        }
+      </code>
+    </pre>
+    <p>And finally I need to update the todo when the tick button is pressed</p>
+    <pre>
+      <code>
+        if (target.className === 'todo-editor') {
+          e.preventDefault()
+
+          let formInput = GetUpdateFormInput(todoBeingEdited)
+          
+          todoCollection.get(todoBeingEdited).update(formInput)
+
+          todoBeingEdited = ''
+          RenderTodos(todoCollection)
+          return
+        }
+      </code>
+    </pre>
+    <p>That seems to be working fine. But errors are Ot being shown when you try and make an invalid change (although at least the invalid change isn't being saved)</p>
+    <p>To sort this I first need to update the code that renders a todo to show an error</p>
+    <pre>
+      <code>
+        function RenderTodo(todo: Todo, errorMessage: string) : WiredTemplateFunction {
+          if (todoBeingEdited === todo.id.value)
+              return hyper.wire(todo)`
+                  &ltform id=${"todo-" + todo.id.value} class="todo-editor"&gt
+                      &ltp style="color: red"&gt${errorMessage}&lt/p&gt
+                      &ltlabel&gtName: &ltinput class="update-name" value="${todo.name.value}"/&gt&lt/label&gt
+                      &ltlabel&gtDescription: &ltinput class="update-description" value="${todo.description.value}"/&gt&lt/label&gt
+                      &ltp&gtCreated at: ${todo.createdAt.displayString}&lt/p&gt
+                      &ltinput type="button" value="❌"/&gt
+                      &ltinput type="submit" value="✔"/&gt
+                  &lt/form&gt
+              `
+      </code>
+    </pre>
+    <p>The error message was also added to <code>RenderTodos</code> and passed through</p>
+    <p>And the code to process the button click needs to be aware of the error message</p>
+    <pre>
+      <code>
+        if (target.className === 'todo-editor') {
+          e.preventDefault()
+
+          let errorMessage = ''
+
+          try {
+              let formInput = GetUpdateFormInput(todoBeingEdited)
+          
+              todoCollection.get(todoBeingEdited).update(formInput)
+  
+              todoBeingEdited = ''
+          }
+          catch(error) {
+              errorMessage = error.message
+          }
+          finally {
+              RenderTodos(todoCollection, errorMessage)
+          }
+
+          return
+        }
+      </code>
+    </pre>
+    <p>At that I'll call it a night. I'm not sure what I should try and do next. It might be time to work out how to manage persistence</p>
+  </body>
+</html>
